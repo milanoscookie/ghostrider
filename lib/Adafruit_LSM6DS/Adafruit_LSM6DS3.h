@@ -20,7 +20,7 @@
 
 #include "Adafruit_LSM6DS.h"
 
-#define LSM6DS3_CHIP_ID 0x69 ///< LSM6DS3 default device id from WHOAMI
+#define LSM6DS3_CHIP_ID 0x6A ///< LSM6DS3 default device id from WHOAMI
 
 #define LSM6DS3_MASTER_CONFIG 0x1A ///< I2C Master config
 
