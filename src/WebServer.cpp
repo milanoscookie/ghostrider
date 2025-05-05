@@ -109,16 +109,13 @@ void WebServer::serverTask(void *parameter)
     IMU::Angles angles;
     while (true)
     {
-        self->outboundData.roll = 89;
-        self->outboundData.pitch = 88;
-        self->outboundData.yaw = 87;
-        // if (xQueuePeek(SyncObjects::anglesQueue, &angles, pdMS_TO_TICKS(50)) == pdTRUE)
-        // {
-        //     // Save to outbound data
-        //     self->outboundData.roll = angles.roll;
-        //     self->outboundData.pitch = angles.pitch;
-        //     self->outboundData.yaw = angles.yaw;
-        // }
+        if (xQueuePeek(SyncObjects::anglesQueue, &angles, pdMS_TO_TICKS(50)) == pdTRUE)
+        {
+            // Save to outbound data
+            self->outboundData.roll = angles.roll;
+            self->outboundData.pitch = angles.pitch;
+            self->outboundData.yaw = angles.yaw;
+        }
         vTaskDelay(pdMS_TO_TICKS(100)); // Check every 100ms
     }
 }
