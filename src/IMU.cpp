@@ -1,6 +1,4 @@
 #include "IMU.hpp"
-#include "SyncObjects.hpp"
-#include "Constants.hpp"
 
 IMU* IMU::instance = nullptr;
 
@@ -103,6 +101,7 @@ void IMU::updateFilter(const Data& data, Angles& angles) {
         angles.roll = filter.getRoll();
         angles.pitch = filter.getPitch();
         angles.yaw = filter.getYaw();
+
 
         xSemaphoreGive(SyncObjects::madgwickMutex);
     }

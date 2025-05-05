@@ -15,7 +15,7 @@ void FrontControl::startTask() {
     xTaskCreate(
         controlTask,                   // Task function
         "FrontControl_Task",           // Task name
-        Constants::CONTROL_TASK_STACK_SIZE, // Stack size
+        Constants::SIDE_CONTROL_TASK_STACK_SIZE, // Stack size
         this,                          // Task parameter (this pointer)
         Constants::DEFAULT_TASK_PRIORITY,      // Task priority
         &taskHandle                    // Task handle

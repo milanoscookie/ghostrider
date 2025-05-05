@@ -32,11 +32,12 @@ void setup() {
     vTaskDelay(pdMS_TO_TICKS(100));
     
     // Initialize and start tasks
-    IMU::getInstance()->startTask();
-    SideControl::getInstance()->startTask();
-    ServoArm::getInstance()->startTask();
-    Encoder::getInstance()->startTask();
-    FrontControl::getInstance()->startTask();
+    // IMU::getInstance()->startTask();
+    // SideControl::getInstance()->startTask();
+    // ServoArm::getInstance()->startTask();
+    // Encoder::getInstance()->startTask();
+    // FrontControl::getInstance()->startTask();
+    WebServer::getInstance()->startTask();
 }
 
 void loop() {

@@ -6,6 +6,10 @@
 #include <Wire.h>
 #include <MadgwickAHRS.h>
 #include <stdint.h>
+#include <WebServer.hpp>
+
+#include "SyncObjects.hpp"
+#include "Constants.hpp"
 
 class IMU {
 public:

@@ -7,6 +7,7 @@ SemaphoreHandle_t SyncObjects::madgwickMutex = nullptr;
 
 QueueHandle_t SyncObjects::servoPositionQueue = nullptr;
 QueueHandle_t SyncObjects::imuQueue = nullptr;
+QueueHandle_t SyncObjects::anglesQueue = nullptr;
 QueueHandle_t SyncObjects::encoderQueue = nullptr;
 
 void SyncObjects::initialize()
@@ -15,9 +16,10 @@ void SyncObjects::initialize()
     i2cMutex = xSemaphoreCreateMutex();
     madgwickMutex = xSemaphoreCreateMutex();
 
-    imuQueue = xQueueCreate(50, sizeof(IMU::Data));         // Ensure IMU::Data is visible
+    imuQueue = xQueueCreate(50, sizeof(IMU::Data));        
+    anglesQueue = xQueueCreate(50, sizeof(IMU::Angles));        
     servoPositionQueue = xQueueCreate(10, sizeof(double));
-    encoderQueue = xQueueCreate(4096, sizeof(Encoder::Event)); // Ensure Encoder::Event is visible
+    encoderQueue = xQueueCreate(4096, sizeof(Encoder::State)); 
 
     // Optionally give mutexes initial tokens
     if (serialMutex) xSemaphoreGive(serialMutex);
@@ -29,7 +31,7 @@ void SyncObjects::printMessage(const String &message)
 {
     if (xSemaphoreTake(serialMutex, pdMS_TO_TICKS(200)) == pdTRUE)
     {
-        Serial.println(message);
+        Serial.print(message);
         xSemaphoreGive(serialMutex);
     }
 }

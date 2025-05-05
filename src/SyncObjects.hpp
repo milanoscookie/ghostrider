@@ -7,6 +7,7 @@
 #include <freertos/queue.h>
 #include "IMU.hpp"
 #include "Encoder.hpp"
+#include "WebServer.hpp"
 
 class SyncObjects {
 public:
@@ -16,6 +17,7 @@ public:
     
     static QueueHandle_t servoPositionQueue;
     static QueueHandle_t imuQueue;
+    static QueueHandle_t anglesQueue;
     static QueueHandle_t encoderQueue;
 
     static void initialize();
