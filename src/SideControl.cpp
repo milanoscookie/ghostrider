@@ -28,7 +28,7 @@ void SideControl::controlTask(void* parameter) {
     IMU::Angles angles;
 
     while (true) {
-        if (xQueueReceive(SyncObjects::imuQueue, &imuData, pdMS_TO_TICKS(100)) == pdPASS) {
+        if (xQueueReceive(SyncObjects::imuQueue, &imuData, 0) == pdPASS) {
             SyncObjects::printValues("Accel: ", imuData.accel_x, imuData.accel_y, imuData.accel_z);
 
             control->imu->updateFilter(imuData, angles);
@@ -36,9 +36,9 @@ void SideControl::controlTask(void* parameter) {
 
             // Use roll angle for servo control
             double servoAngle = angles.roll;
-            xQueueSend(SyncObjects::servoPositionQueue, &servoAngle, pdMS_TO_TICKS(100));
+            xQueueSend(SyncObjects::servoPositionQueue, &servoAngle, 0);
         }
 
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
