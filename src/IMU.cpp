@@ -68,28 +68,32 @@ void IMU::configureIMU() {
     lsm6ds3.setGyroDataRate(LSM6DS_RATE_104_HZ);
 }
 
-bool IMU::readData(Data& data) {
-    if (!initialized) return false;
+bool IMU::readData(Data &data)
+{
+    if (!initialized)
+        return false;
 
     sensors_event_t accel, gyro;
 
-    if (xSemaphoreTake(SyncObjects::i2cMutex, pdMS_TO_TICKS(1)) == pdTRUE) {
+    if (xSemaphoreTake(SyncObjects::i2cMutex, pdMS_TO_TICKS(1)) == pdTRUE)
+    {
+        if (lsm6ds3.getAccelerometerSensor()->getEvent(&accel))
+        {
+            data.accel_x = accel.acceleration.x;
+            data.accel_y = accel.acceleration.y;
+            data.accel_z = accel.acceleration.z;
+            data.timestamp = millis();
+        }
+        if (lsm6ds3.getAccelerometerSensor()->getEvent(&accel))
+        {
+            data.gyro_x = gyro.gyro.x;
+            data.gyro_y = gyro.gyro.y;
+            data.gyro_z = gyro.gyro.z;
+            data.timestamp = millis();
+        }
         xSemaphoreGive(SyncObjects::i2cMutex);
+        data.data_valid = true;
     }
-
-    if(lsm6ds3.getAccelerometerSensor() -> getEvent(&accel)) {
-        data.accel_x = accel.acceleration.x;
-        data.accel_y = accel.acceleration.y;
-        data.accel_z = accel.acceleration.z;
-        data.timestamp = millis();
-    }
-    if(lsm6ds3.getAccelerometerSensor() -> getEvent(&accel)) {
-        data.gyro_x = gyro.gyro.x;
-        data.gyro_y = gyro.gyro.y;
-        data.gyro_z = gyro.gyro.z;
-        data.timestamp = millis();
-    }
-    data.data_valid = true;
 
     return true;
 }
