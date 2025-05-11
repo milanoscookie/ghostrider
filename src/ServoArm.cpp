@@ -13,8 +13,13 @@ ServoArm* ServoArm::getInstance() {
 
 void ServoArm::initialize() {
     // Attach the servo to the specified pin and pulse width range
-    servo.attach(Config::PIN, Config::MIN_PULSE_US, Config::MAX_PULSE_US);
-    servo.writeMicroseconds(Config::NEUTRAL_US);  // Start with the neutral position
+    //servo.setPeriodHertz(50);
+    //servo.attach(Config::SERVO_PIN, Config::MIN_PULSE_US, Config::MAX_PULSE_US);
+    //servo.writeMicroseconds(Config::NEUTRAL_US);  // Start with the neutral position
+
+    ledcSetup(1,50,8);
+    ledcAttachPin(Config::SERVO_PIN,1);
+    ledcWrite(1,19);
 }
 
 void ServoArm::startTask() {
@@ -33,14 +38,16 @@ void ServoArm::startTask() {
 
 void ServoArm::servoTask(void* parameter) {
     ServoArm* servoArm = (ServoArm*)parameter;
+    IMU::Data imuData;
+    IMU::Angles imuAngles;
     double position;
 
     while (true) {
-        if (xQueueReceive(SyncObjects::servoPositionQueue, &position, pdMS_TO_TICKS(100)) == pdTRUE) {
-            servoArm->setPosition(position);  // Set the servo position if a command is received
-        } else {
-            // Default position if no commands received
-            servoArm->setPosition(130);
+        if (xQueueReceive(SyncObjects::imuQueue, &imuData, pdMS_TO_TICKS(100)) == pdTRUE) {
+            IMU::getInstance()->updateFilter(imuData, imuAngles);            // Default position if no commands received
+            position = servoArm->servoPID(imuAngles.roll);
+            //Serial.println(String(imuAngles.roll) + ", " + String(position));
+            servoArm->setPosition(position);
         }
 
         vTaskDelay(pdMS_TO_TICKS(10));  // Delay for a while before checking again
@@ -52,9 +59,35 @@ void ServoArm::setPosition(double position) {
     position = constrain(position, 0, Config::MAX_ANGLE);
 
     // Map the position to a corresponding pulse width
-    int pulseWidth = Config::MIN_PULSE_US + (position / Config::MAX_ANGLE) * 
+    double pulse = Config::MIN_PULSE_US + (position / Config::MAX_ANGLE) * 
                      (Config::MAX_PULSE_US - Config::MIN_PULSE_US);
 
     // Move the servo to the computed position
-    servo.writeMicroseconds(pulseWidth);
+    int pulseWidth = ((pulse / 20000.0) * 255.0) + 5;
+    Serial.println(String(position) + ", " + String(pulseWidth));
+    ledcWrite(1, pulseWidth);
+    //servo.writeMicroseconds(pulseWidth);
+}
+
+double ServoArm::servoPID(double roll) {
+    static double integral = 0.0;
+    static double prevError = 0.0;
+    static uint32_t lastTime = millis();
+
+    double error = 0.0 - roll;  // Target is zero roll (upright)
+
+    uint32_t now = millis();
+    double dt = (now - lastTime) / 1000.0;
+    lastTime = now;
+
+    integral += error * dt;
+    double derivative = (error - prevError) / dt;
+    prevError = error;
+
+    double output = Config::kP_servo * error + Config::kI_servo * integral + Config::kD_servo * derivative;
+
+    // Map output to servo angle (e.g., -30° to +30°)
+    double angle = constrain(90 + output, 0, Config::MAX_ANGLE);
+    //Serial.println(String(error) + ", " + String(integral) + ", " + String(derivative) + ", " + String(angle));
+    return angle;
 }

@@ -133,7 +133,7 @@ void Encoder::encoderTask(void* parameter) {
             }
             
             // Log data
-            if (xSemaphoreTake(SyncObjects::serialMutex, pdMS_TO_TICKS(20)) == pdTRUE) {
+            if (0){//xSemaphoreTake(SyncObjects::serialMutex, pdMS_TO_TICKS(20)) == pdTRUE) {
                 Serial.printf("Position = %d, Angle = %.2f, Angular Velocity = %.2f deg/s, Angular Acceleration = %.2f deg/s²\n",
                               encoder->state.position,
                               encoder->state.angle,
