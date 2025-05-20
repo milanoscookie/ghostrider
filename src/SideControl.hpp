@@ -17,6 +17,9 @@ private:
 public:
     // Constructor
     SideControl();
+    struct Config {
+        static constexpr double MAX_ANGLE = 180.0;  // Servo range in degrees
+    };
 
     // Singleton pattern
     static SideControl* getInstance();

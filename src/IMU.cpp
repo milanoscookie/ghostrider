@@ -39,7 +39,7 @@ void IMU::readTask(void* parameter) {
 bool IMU::initialize(uint8_t addr) {
     bool success = false;
 
-    if (xSemaphoreTake(SyncObjects::i2cMutex, pdMS_TO_TICKS(1)) == pdTRUE) {
+    if (xSemaphoreTake(SyncObjects::i2cMutex, portMAX_DELAY) == pdTRUE) {
         success = lsm6ds3.begin_I2C(addr);
 
         if (success) {
@@ -47,7 +47,7 @@ bool IMU::initialize(uint8_t addr) {
             configureIMU();
             SyncObjects::printMessage("LSM6DS3 initialized successfully");
 
-            if (xSemaphoreTake(SyncObjects::madgwickMutex, 0) == pdTRUE) {
+            if (xSemaphoreTake(SyncObjects::madgwickMutex, pdMS_TO_TICKS(200)) == pdTRUE) {
                 filter.begin(104, 1.0f);
                 xSemaphoreGive(SyncObjects::madgwickMutex);
             }
@@ -68,48 +68,68 @@ void IMU::configureIMU() {
     lsm6ds3.setGyroDataRate(LSM6DS_RATE_104_HZ);
 }
 
-bool IMU::readData(Data &data)
-{
-    if (!initialized)
-        return false;
+bool IMU::readData(Data& data) {
+    if (!initialized) return false;
 
-    sensors_event_t accel, gyro;
+    sensors_event_t accel, gyro, temp;
 
-    if (xSemaphoreTake(SyncObjects::i2cMutex, pdMS_TO_TICKS(1)) == pdTRUE)
-    {
-        if (lsm6ds3.getAccelerometerSensor()->getEvent(&accel))
-        {
-            data.accel_x = accel.acceleration.x;
-            data.accel_y = accel.acceleration.y;
-            data.accel_z = accel.acceleration.z;
-            data.timestamp = millis();
-        }
-        if (lsm6ds3.getAccelerometerSensor()->getEvent(&accel))
-        {
-            data.gyro_x = gyro.gyro.x;
-            data.gyro_y = gyro.gyro.y;
-            data.gyro_z = gyro.gyro.z;
-            data.timestamp = millis();
-        }
+    if (xSemaphoreTake(SyncObjects::i2cMutex, portMAX_DELAY) == pdTRUE) {
+        // lsm6ds3.getEvent(&accel, &gyro, &temp);
+        lsm6ds3.getAccelerometerSensor() -> getEvent(&accel);
+        lsm6ds3.getGyroSensor() -> getEvent(&gyro);
         xSemaphoreGive(SyncObjects::i2cMutex);
-        data.data_valid = true;
     }
+
+    data.timestamp = millis();
+    data.accel_x = accel.acceleration.x;
+    data.accel_y = accel.acceleration.y;
+    data.accel_z = accel.acceleration.z;
+
+
+    // Use gyroscopic data to get accel due to only gravity
+    Encoder::State* encState = Encoder::getInstance()->getState();
+    if (!encState && encSubtract)
+    {
+        float normAccelTrans = encState->angularAcceleration * Constants::WHEEL_RADIUS / Constants::GRAVITY; // translational acceleration in g force units
+        data.s_accel_x = accel.acceleration.x - normAccelTrans * Encoder::Config::ACCEL_ORIENTATION[0];
+        data.s_accel_y = accel.acceleration.y - normAccelTrans * Encoder::Config::ACCEL_ORIENTATION[1];
+        data.s_accel_z = accel.acceleration.z - normAccelTrans * Encoder::Config::ACCEL_ORIENTATION[2];
+    }
+
+    data.gyro_x = gyro.gyro.x;
+    data.gyro_y = gyro.gyro.y;
+    data.gyro_z = gyro.gyro.z;
+    data.data_valid = true;
 
     return true;
 }
 
 void IMU::updateFilter(const Data& data, Angles& angles) {
-    if (xSemaphoreTake(SyncObjects::madgwickMutex, 0) == pdTRUE) {
+    if (xSemaphoreTake(SyncObjects::madgwickMutex, pdMS_TO_TICKS(200)) == pdTRUE) {
+        if(encSubtract) {
+
+            filter.updateIMU(
+                data.gyro_x * DEG_TO_RAD, data.gyro_y * DEG_TO_RAD, data.gyro_z * DEG_TO_RAD,
+                data.s_accel_x / Constants::GRAVITY, data.s_accel_y / Constants::GRAVITY, data.s_accel_z / Constants::GRAVITY
+            );
+
+        }
         filter.updateIMU(
             data.gyro_x * DEG_TO_RAD, data.gyro_y * DEG_TO_RAD, data.gyro_z * DEG_TO_RAD,
             data.accel_x / Constants::GRAVITY, data.accel_y / Constants::GRAVITY, data.accel_z / Constants::GRAVITY
         );
 
         angles.timestamp = data.timestamp;
+
+        Encoder::State* encState = Encoder::getInstance()->getState();
         angles.roll = filter.getRoll();
         angles.pitch = filter.getPitch();
         angles.yaw = filter.getYaw();
 
+        // Update volatile variables after Madgwick update
+        lastRoll = angles.roll;
+        lastPitch = angles.pitch;
+        lastYaw = angles.yaw;
 
         xSemaphoreGive(SyncObjects::madgwickMutex);
     }

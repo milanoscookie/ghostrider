@@ -9,10 +9,13 @@
 
 class Encoder {
 public:
+
+
     struct Config {
         static constexpr gpio_num_t PIN_A = GPIO_NUM_18;  // Quadrature A signal
         static constexpr gpio_num_t PIN_B = GPIO_NUM_19;  // Quadrature B signal
         static constexpr int EDGES_PER_REV = 2400;        // Encoder resolution
+        static constexpr int ACCEL_ORIENTATION[3] = {1, 0, 0};
     };
 
     struct State {

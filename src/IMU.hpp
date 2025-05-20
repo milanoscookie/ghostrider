@@ -16,6 +16,7 @@ public:
     struct Data {
         uint32_t timestamp;
         float accel_x, accel_y, accel_z;
+        float s_accel_x, s_accel_y, s_accel_z;
         float gyro_x, gyro_y, gyro_z;
         bool data_valid;
     };
@@ -33,6 +34,13 @@ public:
 
     bool readData(Data& data);
     void updateFilter(const Data& data, Angles& angles);
+
+    // Add volatile variables for last angles
+    volatile float lastRoll = 0.0f;
+    volatile float lastPitch = 0.0f;
+    volatile float lastYaw = 0.0f;
+
+    bool encSubtract = false;
 
 private:
     Adafruit_LSM6DS3 lsm6ds3;

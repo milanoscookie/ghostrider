@@ -9,12 +9,18 @@
 class ServoArm {
 public:
     struct Config {
-        static constexpr int PIN = 13;
         static constexpr int MIN_PULSE_US = 500;
         static constexpr int MAX_PULSE_US = 2500;
         static constexpr int NEUTRAL_US = 1500;
         static constexpr int DEAD_BAND_US = 3;
         static constexpr int MAX_ANGLE = 270;
+
+        static constexpr int SERVO_PIN = 2;
+
+        static constexpr double kP_servo = 1.0;
+        static constexpr double kI_servo = 0.0;
+        static constexpr double kD_servo = 0.00;
+
     };
     
 private:
@@ -40,6 +46,8 @@ public:
 
     // Set the position of the servo arm (angle in degrees)
     void setPosition(double position);
+
+    double servoPID(double roll);
 };
 
 #endif // SERVOARM_HPP

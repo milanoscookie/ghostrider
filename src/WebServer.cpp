@@ -1,121 +1,126 @@
 #include "WebServer.hpp"
 
-WebServer *WebServer::instance = nullptr;
+WebServer* WebServer::instance = nullptr;
 
-WebServer *WebServer::getInstance()
-{
-    if (instance == nullptr)
-    {
+WebServer* WebServer::getInstance() {
+    if (instance == nullptr) {
         instance = new WebServer();
     }
     return instance;
 }
 
-bool WebServer::connectToWifi()
-{
+bool WebServer::connectToWifi() {
+    Serial.println("\nAttempting to connect to WiFi");
     WiFi.begin(Config::SSID);
-    // Wait for connection
+
     int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 30)
-    { // 30 attempts (15 seconds max)
-        SyncObjects::printMessage(".");
-        delay(500); // Wait 500ms between attempts
+    while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+        // Serial.print(".");
+        Serial.printf("Attempt %d...\n", attempts + 1);
+        vTaskDelay(pdMS_TO_TICKS(500));  // Wait 500 ms
         attempts++;
     }
-    // Check if the connection was successful
-    if (WiFi.status() == WL_CONNECTED)
-    {
-        // Use Arduino's String instead of std::string
-        String wifiStatus = "\nConnected to WiFi!\nIP Address: " + WiFi.localIP().toString();
-        SyncObjects::printMessage(wifiStatus);  // Log the connection status
+
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.printf("\nConnected to WiFi!\nIP Address: %s\n", WiFi.localIP().toString().c_str());
+        started = true;
         return true;
-    }
-    else
-    {
-        // Use Arduino's String instead of std::string
-        String wifiStatus = "Failed to connect to WiFi\n";
-        SyncObjects::printMessage(wifiStatus);  // Log the failure
+    } else {
+        Serial.println("Failed to connect to WiFi");
         return false;
     }
 }
 
-void WebServer::startTask()
-{
-    setup();
-
+void WebServer::startTask() {
     xTaskCreate(
         WebServer::serverTask,
         "WebServerTask",
         Constants::WEB_SERVER_TASK_STACK_SIZE,
         this,
         Constants::DEFAULT_TASK_PRIORITY,
-        &taskHandle);
+        &taskHandle
+    );
 }
 
-bool WebServer::setup()
-{
-    if (connectToWifi())
-    {
-        if (initialized)
-            return true;
+bool WebServer::setup() {
+    started=true;
+    if (!connectToWifi()) return false;
+    if (initialized) return true;
 
-        outboundData.roll = 99;
-        outboundData.pitch = 99;
-        outboundData.yaw = 99;
+    outboundData = {99, 99, 99};  // roll, pitch, yaw default
 
-        server = new AsyncWebServer(Config::port);
-        // Serve the index.html page on root
-        server->on("/", HTTP_GET, [this](AsyncWebServerRequest *request){
-            request->send(200, "text/html", WEBPAGE_STRING );  // Send the HTML page directly
-        });
-        // GET /imu - returns roll, pitch, yaw
-        server->on("/imu", HTTP_GET, [this](AsyncWebServerRequest *request)
-                   {
-            String json = "{";
-            json += "\"roll\":" + String(outboundData.roll, 2) + ",";
-            json += "\"pitch\":" + String(outboundData.pitch, 2) + ",";
-            json += "\"yaw\":" + String(outboundData.yaw, 2);
-            json += "}";
-            request->send(200, "application/json", json); });
-        // PUT /tilt - sets inbound tilt value
-        server->on("/tilt", HTTP_PUT, [this](AsyncWebServerRequest *request)
-                   {
-            if (request->hasParam("value", true)) {
-                inboundData.tilt = request->getParam("value", true)->value().toFloat();
-                request->send(200, "application/json", "{\"status\":\"tilt updated\"}");
-            } else {
-                request->send(400, "application/json", "{\"error\":\"Missing value parameter\"}");
-            } });
-        // PUT /velocity - sets inbound velocity value
-        server->on("/velocity", HTTP_PUT, [this](AsyncWebServerRequest *request)
-                   {
-            if (request->hasParam("value", true)) {
-                inboundData.velocity = request->getParam("value", true)->value().toFloat();
-                request->send(200, "application/json", "{\"status\":\"velocity updated\"}");
-            } else {
-                request->send(400, "application/json", "{\"error\":\"Missing value parameter\"}");
-            } });
-        server->begin();
-        initialized = true;
-        return true;
-    }
-    return false;
-}
+    server = new AsyncWebServer(Config::port);
 
-void WebServer::serverTask(void *parameter)
-{
+    server->on("/", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        request->send(200, "text/html", WEBPAGE_STRING);
+    });
 
-    WebServer *self = static_cast<WebServer *>(parameter);
-    IMU::Angles angles;
-    while (true)
-    {
-        if (xQueuePeek(SyncObjects::anglesQueue, &angles, pdMS_TO_TICKS(50)) == pdTRUE)
-        {
-            // Save to outbound data
-            self->outboundData.roll = angles.roll;
-            self->outboundData.pitch = angles.pitch;
-            self->outboundData.yaw = angles.yaw;
+    // Modified IMU endpoint to use current values on each request
+    server->on("/imu", HTTP_GET, WebServer::handleImuRequest);
+    // server->on("/imu", HTTP_GET, [this](AsyncWebServerRequest* request) {
+    //     const String json = String("{\"roll\":") + String(this->outboundData.roll, 2) +
+    //                       ",\"pitch\":" + String(this->outboundData.pitch, 2) +
+    //                       ",\"yaw\":" + String(this->outboundData.yaw, 2) + "}";
+    //     request->send(200, "application/json", json);
+    // });
+
+    server->on("/tilt", HTTP_PUT, [this](AsyncWebServerRequest* request) {
+        if (request->hasParam("value", true)) {
+            inboundData.tilt = request->getParam("value", true)->value().toFloat();
+            request->send(200, "application/json", "{\"status\":\"tilt updated\"}");
+        } else {
+            request->send(400, "application/json", "{\"error\":\"Missing value parameter\"}");
         }
-        vTaskDelay(pdMS_TO_TICKS(100)); // Check every 100ms
+    });
+
+    server->on("/velocity", HTTP_PUT, [this](AsyncWebServerRequest* request) {
+        if (request->hasParam("value", true)) {
+            inboundData.velocity = request->getParam("value", true)->value().toFloat();
+            request->send(200, "application/json", "{\"status\":\"velocity updated\"}");
+        } else {
+            request->send(400, "application/json", "{\"error\":\"Missing value parameter\"}");
+        }
+    });
+
+    server->begin();
+    initialized = true;
+    return true;
+}
+
+void WebServer::serverTask(void* parameter) {
+    WebServer* self = static_cast<WebServer*>(parameter);
+    IMU::Angles angles;
+
+    // Run setup only once at the start of the task
+    if (!self->started) {
+        if (!self->setup()) {
+            Serial.println("Failed to setup WebServer");
+            vTaskDelete(NULL);  // Delete the task if setup fails
+            return;
+        }
     }
+
+    while (true) {
+        // self->outboundData.roll = 0.0f;
+        // self->outboundData.pitch = 0.0f;
+        // self->outboundData.yaw = 0.0f;
+        
+        self->outboundData.roll =  IMU::getInstance()->lastRoll;
+        self->outboundData.pitch = IMU::getInstance()->lastPitch;
+        self->outboundData.yaw =   IMU::getInstance()->lastYaw;
+        Serial.printf("%f, %f, %f\n", self->outboundData.roll, self->outboundData.pitch, self->outboundData.yaw);
+        vTaskDelay(pdMS_TO_TICKS(10));  // Update every 10ms
+    }
+}
+
+void WebServer::handleImuRequest(AsyncWebServerRequest *request) {
+    // Get the singleton instance
+    WebServer* ws = WebServer::getInstance();
+    
+    // Create JSON with current values
+    const String json = String("{\"roll\":") + String(ws->outboundData.roll, 2) +
+                    ",\"pitch\":" + String(ws->outboundData.pitch, 2) +
+                    ",\"yaw\":" + String(ws->outboundData.yaw, 2) + "}";
+    
+    request->send(200, "application/json", json);
 }

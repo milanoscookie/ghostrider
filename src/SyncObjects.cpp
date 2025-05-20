@@ -19,7 +19,7 @@ void SyncObjects::initialize()
     imuQueue = xQueueCreate(50, sizeof(IMU::Data));        
     anglesQueue = xQueueCreate(50, sizeof(IMU::Angles));        
     servoPositionQueue = xQueueCreate(10, sizeof(double));
-    encoderQueue = xQueueCreate(4096, sizeof(Encoder::State)); 
+    encoderQueue = xQueueCreate(10, sizeof(Encoder::State)); 
 
     // Optionally give mutexes initial tokens
     if (serialMutex) xSemaphoreGive(serialMutex);
