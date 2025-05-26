@@ -31,6 +31,10 @@ public:
     bool initialize(uint8_t addr=0x6AU);
     void configureIMU();
 
+    volatile float lastRoll = 0.0f;
+    volatile float lastPitch = 0.0f;
+    volatile float lastYaw = 0.0f;
+
     bool readData(Data& data);
     void updateFilter(const Data& data, Angles& angles);
 

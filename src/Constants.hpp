@@ -11,7 +11,7 @@ public:
     static constexpr int SERVO_TASK_STACK_SIZE = 4096;
     static constexpr int ENCODER_TASK_STACK_SIZE = 4096;
     static constexpr int BIKE_MOTOR_TASK_STACK_SIZE = 2048;
-    static constexpr int WEB_SERVER_TASK_STACK_SIZE = 2048;
+    static constexpr int WEB_SERVER_TASK_STACK_SIZE = 9128;
 
     static constexpr int DEFAULT_TASK_PRIORITY = 2;
 };

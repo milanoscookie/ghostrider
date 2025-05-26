@@ -102,6 +102,10 @@ void IMU::updateFilter(const Data& data, Angles& angles) {
         angles.pitch = filter.getPitch();
         angles.yaw = filter.getYaw();
 
+        lastRoll = angles.roll;
+        lastPitch = angles.pitch;
+        lastYaw = angles.yaw;
+
 
         xSemaphoreGive(SyncObjects::madgwickMutex);
     }

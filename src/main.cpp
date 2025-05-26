@@ -38,7 +38,7 @@ void setup() {
      ServoArm::getInstance()->startTask();
      Encoder::getInstance()->startTask();
      //FrontControl::getInstance()->startTask();
-     //WebServer::getInstance()->startTask();
+     WebServer::getInstance()->startTask();
      BikeMotor::getInstance()->startTask();
 
     

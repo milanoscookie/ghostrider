@@ -13,6 +13,7 @@
 
 class WebServer {
 public:
+    volatile bool started = false;
     enum Command { FORWARD, BACKWARD, STEADY };
 
     // Config structure
@@ -20,6 +21,7 @@ public:
         static constexpr int port = 80;
         static constexpr const char* SSID = "Device-Northwestern";  // Changed String to const char*
     };
+    static void handleImuRequest(AsyncWebServerRequest *request);
 
     // Singleton instance getter
     static WebServer* getInstance();
@@ -45,6 +47,7 @@ public:
 
     // WiFi connection method
     bool connectToWifi();
+    void updateImuData();
 
 private:
     bool initialized = false;                    // Flag to check if the server is initialized
@@ -77,7 +80,8 @@ private:
     <p>Yaw: <span id="yaw">0.00</span></p>
     <button onclick="fetchIMUData()">Refresh IMU Data</button>
   </div>
-  
+  <!--
+  TODO: uncomment
   <div>
     <h2>Controls</h2>
     <div>
@@ -91,6 +95,7 @@ private:
       <button onclick="sendVelocity()">Set Velocity</button>
     </div>
   </div>
+  -->
   
   <div id="status"></div>
 

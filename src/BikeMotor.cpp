@@ -83,7 +83,7 @@ void BikeMotor::setPWM(double targetCurrent) {
     int pwmValue = static_cast<int>(pwmDuty * 255);
     //SyncObjects::printValues("",targetCurrent,actualCurrent,pwmDuty);
     //Serial.println(String(targetCurrent) + ", " + String(actualCurrent) + ", " + String(pwmValue));
-    if (abs(pwmValue) < 2 * Config::MAX_DUTY / 0.125) {
+    if (abs(pwmValue) < 5 * Config::MAX_DUTY / 0.125) {
         ledcDetachPin(Config::MOTOR_CONTROLLER_PIN);
         pinMode(Config::MOTOR_CONTROLLER_PIN, OUTPUT);
         digitalWrite(Config::MOTOR_CONTROLLER_PIN, LOW);  // Ensure LOW
@@ -98,7 +98,7 @@ void BikeMotor::setPWM(double targetCurrent) {
             digitalWrite(Config::CONTROL_B, 1);
         }
         ledcAttachPin(Config::MOTOR_CONTROLLER_PIN, 0);
-        ledcWrite(0, abs(pwmValue));
+        ledcWrite(0, abs(242));
 }
     //ledcWrite(0, 0);
 }

@@ -141,6 +141,7 @@ void Encoder::encoderTask(void* parameter) {
                               encoder->state.angularAcceleration);
                 xSemaphoreGive(SyncObjects::serialMutex);
             }
+            vTaskDelay(pdMS_TO_TICKS(10));
         }
         
     }
