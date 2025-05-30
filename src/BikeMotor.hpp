@@ -22,9 +22,9 @@ public:
         static constexpr double MAX_DUTY = 0.5;
         static constexpr double WHEEL_RADIUS = 16; // inches
 
-        static constexpr double kP_wheel = 1.0;
+        static constexpr double kP_wheel = 0.5;
         static constexpr double kI_wheel = 0;//0.2;
-        static constexpr double kD_wheel = 0;//0.01;
+        static constexpr double kD_wheel = 0.00;//0.01;
 
         static constexpr double kP_current = 0.1;
         static constexpr double kI_current = 0;//0.2;

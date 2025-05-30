@@ -102,6 +102,14 @@ void IMU::updateFilter(const Data& data, Angles& angles) {
         angles.pitch = filter.getPitch();
         angles.yaw = filter.getYaw();
 
+
+        Serial.print(angles.roll);
+        Serial.print("\t");
+        Serial.print(angles.pitch);
+        Serial.print("\t");
+        Serial.print(angles.yaw);
+        Serial.print("\n");
+
         lastRoll = angles.roll;
         lastPitch = angles.pitch;
         lastYaw = angles.yaw;
