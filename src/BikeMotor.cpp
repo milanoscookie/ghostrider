@@ -3,15 +3,18 @@
 BikeMotor* BikeMotor::instance = nullptr;
 
 BikeMotor::BikeMotor() {
-    // Initialize PWM
-    ledcSetup(0, 50, 8);  // Channel 0, 50Hz frequency, 8-bit resolution; TODO, look up specs for motor controller
-    ledcSetup(1, 50, 8);
-    //ledcAttachPin(Config::MOTOR_CONTROLLER_PIN, 0);  // Attach PWM to the specified GPIO pin
-    ledcAttachPin(Config::CONTROL_A,0);
-    ledcAttachPin(Config::CONTROL_B, 1);
-    
-    //pinMode(Config::CONTROL_A, OUTPUT);
-    //pinMode(Config::CONTROL_B, OUTPUT);
+    // Setup PWM for EN pin (speed control)
+    ledcSetup(0, 5000, 8);  // 5kHz PWM, 8-bit resolution
+    ledcAttachPin(Config::PWM_PIN, 0);   // Enable pin for motor speed
+
+    // Setup direction pins
+    pinMode(Config::CONTROL_A, OUTPUT);  // IN1
+    pinMode(Config::CONTROL_B, OUTPUT);  // IN2
+
+    // Default motor state: stopped
+    digitalWrite(Config::CONTROL_A, LOW);
+    digitalWrite(Config::CONTROL_B, LOW);
+    ledcWrite(0, 0);
 }
 
 BikeMotor* BikeMotor::getInstance() {
@@ -27,9 +30,9 @@ void BikeMotor::startTask() {
     xTaskCreate(
         bikeMotorTask,                        // Task function
         "BikeMotor_Task",                     // Task name
-        Constants::BIKE_MOTOR_TASK_STACK_SIZE, // Stack size
+        Constants::BIKE_MOTOR_TASK_STACK_SIZE,// Stack size
         this,                                 // Task parameter (this pointer)
-        Constants::DEFAULT_TASK_PRIORITY,             // Task priority
+        Constants::DEFAULT_TASK_PRIORITY,     // Task priority
         &taskHandle                           // Task handle
     );
 }
@@ -73,40 +76,33 @@ void BikeMotor::setSpeed(double speed, double pitch) {
 }
 
 void BikeMotor::setPWM(double targetCurrent) {
-        // Set PWM duty cycle to control motor speed (0 to 255 for 8-bit resolution)
-        //int pwmValue = static_cast<int>(dutyCycle * 255);
-        //ledcWrite(0, pwmValue);  // Channel 0, set the PWM duty cycle
-
     float actualCurrent = readMotorCurrent();
-    
-    double pwmDuty = currentPID(targetCurrent, actualCurrent);  // Inner loop PID
-    //pwmDuty = constrain(pwmDuty, 0.0, 1.0);
+    double pwmDuty = currentPID(targetCurrent, actualCurrent);
+
     pwmDuty *= Config::MAX_DUTY;
-    int pwmValue = static_cast<int>(pwmDuty * 255);
-    if (abs(pwmValue) < 4 * Config::MAX_DUTY / 0.125) {
-        //ledcDetachPin(Config::MOTOR_CONTROLLER_PIN);
-        //pinMode(Config::MOTOR_CONTROLLER_PIN, OUTPUT);
-        //digitalWrite(Config::MOTOR_CONTROLLER_PIN, LOW);  // Ensure LOW
-        ledcWrite(0,0);
-        ledcWrite(1,0);
-    } 
-    else {
-        if (pwmValue > 0) {
-            //digitalWrite(Config::CONTROL_A, 1);
-            //digitalWrite(Config::CONTROL_B, 0);
-            ledcWrite(0,abs(pwmValue));
-            ledcWrite(1,0);
-        }
-        if (pwmValue < 0) {
-            //digitalWrite(Config::CONTROL_A, 0);
-            //digitalWrite(Config::CONTROL_B, 1);
-            ledcWrite(0,0);
-            ledcWrite(1,abs(pwmValue));
-        }
-        //ledcAttachPin(Config::MOTOR_CONTROLLER_PIN, 0);
-        // ledcWrite(0, abs(pwmValue));
-}
-    //ledcWrite(0, 0);
+    pwmDuty = constrain(pwmDuty, -1.0, 1.0);
+
+    int pwmValue = static_cast<int>(abs(pwmDuty) * 255);
+    
+    if (pwmValue < 4) {
+        // Stop motor
+        digitalWrite(Config::CONTROL_A, LOW);
+        digitalWrite(Config::CONTROL_B, LOW);
+        ledcWrite(0, 0);
+        return;
+    }
+
+    if (pwmDuty > 0) {
+        // Forward
+        digitalWrite(Config::CONTROL_A, HIGH);
+        digitalWrite(Config::CONTROL_B, LOW);
+        ledcWrite(0, pwmValue);
+    } else {
+        // Reverse
+        digitalWrite(Config::CONTROL_A, LOW);
+        digitalWrite(Config::CONTROL_B, HIGH);
+        ledcWrite(0, pwmValue);
+    }
 }
 
 double BikeMotor::wheelPID(double speed, double pitch) {
