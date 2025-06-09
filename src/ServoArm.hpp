@@ -17,9 +17,9 @@ public:
 
         static constexpr int SERVO_PIN = 2;
 
-        static constexpr double kP_servo = 1.0;
+        static constexpr double kP_servo = 4.5;
         static constexpr double kI_servo = 0.0;
-        static constexpr double kD_servo = 0.00;
+        static constexpr double kD_servo = 0.0;
 
     };
     

@@ -22,7 +22,7 @@ public:
         static constexpr double MAX_DUTY = 0.5;
         static constexpr double WHEEL_RADIUS = 16; // inches
 
-        static constexpr double kP_wheel = 0.5;
+        static constexpr double kP_wheel = 0.3;
         static constexpr double kI_wheel = 0;//0.2;
         static constexpr double kD_wheel = 0.00;//0.01;
 
@@ -30,7 +30,7 @@ public:
         static constexpr double kI_current = 0;//0.2;
         static constexpr double kD_current = 0;//0.01;
 
-        static constexpr double TILT_SCALE = 10.0; // what pitch we want PID to saturate at
+        static constexpr double TILT_SCALE = 15.0; // what pitch we want PID to saturate at
 
         static constexpr double ADC_RESOLUTION = 4096.0;
         static constexpr double VREF = 3.3;

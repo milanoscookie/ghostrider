@@ -1,17 +1,13 @@
-#include "BikeMotor.hpp"
+/*#include "BikeMotor.hpp"
 
 BikeMotor* BikeMotor::instance = nullptr;
 
 BikeMotor::BikeMotor() {
     // Initialize PWM
-    ledcSetup(0, 50, 8);  // Channel 0, 50Hz frequency, 8-bit resolution; TODO, look up specs for motor controller
-    ledcSetup(1, 50, 8);
-    //ledcAttachPin(Config::MOTOR_CONTROLLER_PIN, 0);  // Attach PWM to the specified GPIO pin
-    ledcAttachPin(Config::CONTROL_A,0);
-    ledcAttachPin(Config::CONTROL_B, 1);
-    
-    //pinMode(Config::CONTROL_A, OUTPUT);
-    //pinMode(Config::CONTROL_B, OUTPUT);
+    ledcSetup(0, 50, 8);  // Channel 0, 1kHz frequency, 8-bit resolution; TODO, look up specs for motor controller
+    ledcAttachPin(Config::MOTOR_CONTROLLER_PIN, 0);  // Attach PWM to the specified GPIO pin
+    pinMode(Config::CONTROL_A, OUTPUT);
+    pinMode(Config::CONTROL_B, OUTPUT);
 }
 
 BikeMotor* BikeMotor::getInstance() {
@@ -50,8 +46,9 @@ void BikeMotor::bikeMotorTask(void* parameter) {
             // Use pitch and angular velocity for PID
             double pitch = imuAngles.pitch;
             double speed = encState.angularVelocity;
+
             double targetCurrent = bikeMotor->wheelPID(speed, pitch) * Config::MAX_CURRENT_AMPS;  // Outputs amps
-            //Serial.println(String(pitch) + "    " + String(targetCurrent));
+            //Serial.printf("%f %f\n", pitch, targetCurrent);
             bikeMotor->setPWM(targetCurrent);  // Uses current PID
 
             //bikeMotor->setSpeed(speed, pitch);
@@ -77,34 +74,33 @@ void BikeMotor::setPWM(double targetCurrent) {
         //int pwmValue = static_cast<int>(dutyCycle * 255);
         //ledcWrite(0, pwmValue);  // Channel 0, set the PWM duty cycle
 
+    //SyncObjects::printValues("TEST: ",targetCurrent,0.0,0.0);
     float actualCurrent = readMotorCurrent();
     
     double pwmDuty = currentPID(targetCurrent, actualCurrent);  // Inner loop PID
+    Serial.println(String(targetCurrent) + ", " + String(actualCurrent) + ", " + String(pwmDuty));
     //pwmDuty = constrain(pwmDuty, 0.0, 1.0);
     pwmDuty *= Config::MAX_DUTY;
     int pwmValue = static_cast<int>(pwmDuty * 255);
+    //SyncObjects::printValues("",targetCurrent,actualCurrent,pwmDuty);
+    //Serial.println(String(targetCurrent) + ", " + String(actualCurrent) + ", " + String(pwmValue));
     if (abs(pwmValue) < 4 * Config::MAX_DUTY / 0.125) {
-        //ledcDetachPin(Config::MOTOR_CONTROLLER_PIN);
-        //pinMode(Config::MOTOR_CONTROLLER_PIN, OUTPUT);
-        //digitalWrite(Config::MOTOR_CONTROLLER_PIN, LOW);  // Ensure LOW
-        ledcWrite(0,0);
-        ledcWrite(1,0);
+        ledcDetachPin(Config::MOTOR_CONTROLLER_PIN);
+        pinMode(Config::MOTOR_CONTROLLER_PIN, OUTPUT);
+        digitalWrite(Config::MOTOR_CONTROLLER_PIN, LOW);  // Ensure LOW
     } 
     else {
         if (pwmValue > 0) {
-            //digitalWrite(Config::CONTROL_A, 1);
-            //digitalWrite(Config::CONTROL_B, 0);
-            ledcWrite(0,abs(pwmValue));
-            ledcWrite(1,0);
+            digitalWrite(Config::CONTROL_A, 1);
+            digitalWrite(Config::CONTROL_B, 0);
         }
         if (pwmValue < 0) {
-            //digitalWrite(Config::CONTROL_A, 0);
-            //digitalWrite(Config::CONTROL_B, 1);
-            ledcWrite(0,0);
-            ledcWrite(1,abs(pwmValue));
+            digitalWrite(Config::CONTROL_A, 0);
+            digitalWrite(Config::CONTROL_B, 1);
         }
-        //ledcAttachPin(Config::MOTOR_CONTROLLER_PIN, 0);
+        ledcAttachPin(Config::MOTOR_CONTROLLER_PIN, 0);
         // ledcWrite(0, abs(pwmValue));
+        ledcWrite(0, abs(242));
 }
     //ledcWrite(0, 0);
 }
@@ -168,4 +164,4 @@ double BikeMotor::currentPID(double targetCurrent, double actualCurrent) {
     //Serial.println(String(error) + ", " + String(integral) + ", " + String(derivative) + ", " + String(dt) + ", " + String(prevError));
     return output;
     // return 0.0;
-}
+}*/

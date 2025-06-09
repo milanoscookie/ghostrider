@@ -56,6 +56,7 @@ void ServoArm::servoTask(void* parameter) {
 
 void ServoArm::setPosition(double position) {
     // Constrain position within allowable range
+    //position = -1 * (position - Config::MAX_ANGLE);
     position = constrain(position, 0, Config::MAX_ANGLE);
 
     // Map the position to a corresponding pulse width
@@ -64,9 +65,9 @@ void ServoArm::setPosition(double position) {
 
     // Move the servo to the computed position
     int pulseWidth = ((pulse / 20000.0) * 255.0) + 5;
-    //Serial.println(String(position) + ", " + String(pulseWidth));
+    Serial.println(String(position) + ", " + String(pulseWidth));
+    
     ledcWrite(1, pulseWidth);
-    //servo.writeMicroseconds(pulseWidth);
 }
 
 double ServoArm::servoPID(double roll) {
